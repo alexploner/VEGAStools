@@ -55,4 +55,44 @@ summary.VEGAS = function(x, ...)
 showDuplicates = function(x) x[x$Gene %in% x$Gene[duplicated(x$Gene)], ]
 dropDuplicates = function(x) x[!duplicated(x$Gene), ]
 
+
+#' Intersect VEGAS results
+#'
+#' Takes any number of VEGAS data objects and returns a list with VEGAS data sets
+#' reduced to the shared set of genes
+#'
+#' @param ... A list of VEGAS objects, separated by commas
+#'
+#' @return A list of VEGAS objects
+#' @export
+intersectVEGAS = function(...)
+{
+    args = list(...)
+    namu = as.character(substitute(list(...)))[-1]
+    
+	## Some checks
+	nargs = length(args)
+    if (nargs < 2) stop("Need at least two lists to intersect")
+    isVEGAS = sapply(args, function(x) "VEGAS" %in% class(x) )
+    if (!all(isVEGAS)) stop("This function intersections only VEGAS objects")
+    
+    ## Build the intersect
+    gl = lapply(args, function(x) as.character(x$Gene))
+    is = gl[[1]]
+    for (i in 2:nargs) {
+		is = intersect(is, gl[[i]])
+	}
+
+	## Cut down the gene lists, sort and return with the names of the original
+	## objects
+	ret = lapply(args, function(x) subset(x, as.character(Gene) %in% is) )
+	ret = lapply(ret, function(x) x[order(x$Gene), ] )
+	names(ret) = namu
+	ret
+}
+
+
+
+
+
     
