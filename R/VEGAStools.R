@@ -92,6 +92,49 @@ intersectVEGAS = function(...)
 }
 
 
+counts = function(x, y, co=0.05)
+{
+	nn = nrow(x)
+	x0 = x$Pvalue <= co
+	y0 = y$Pvalue <= co
+	obs = length(which(x0 & y0))
+	p0  = length(which(x0))*length(which(y0))/(nn*nn)
+	se  = sqrt(p0*(1-p0)/nn)
+	exp = p0*nn
+	LCL = (p0-1.96*se)*nn
+	UCL = (p0+1.96*se)*nn
+	round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL))
+}
+plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, ylim, title, xlab, ylab, legend=TRUE, ...)
+{
+	xx = seq(minP, maxP, length=nP)
+	cnts = t(sapply(xx, function(p) counts(x, y, co=p)))
+	if (missing(ylim)) {
+		ylim = c(min(cnts), max(cnts))
+	}
+	if (missing(title)) {
+		title = paste(deparse(substitute(x)), " vs. ", deparse(substitute(y)), sep="")
+	}
+	if (missing(xlab)) {
+		xlab = "p-value threshold"
+	}
+	if (missing(ylab)) {
+		ylab = "Counts double significant"
+	}
+	
+	plot(xx, cnts[,2], type="l", ylim=ylim, xlab=xlab, ylab=ylab, main=title, ...)
+	lines(xx, cnts[,1], lwd=2, col="red")
+	lines(xx, cnts[,3], lty=2, col="blue")
+	lines(xx, cnts[,4], lty=2, col="blue")
+	if (legend) {
+		legend("topleft", c("Observed", "Expected under H0", "95% CI"), col=c("red", "black", "blue"), lty=c(1,1,1), lwd=c(2,1,1))
+	}
+	
+	ret = data.frame(cnts, co=xx)
+	invisible(ret)
+}	
+
+
 
 
 
