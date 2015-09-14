@@ -25,11 +25,34 @@ readVEGAS = function(fn, path=".", adjPermP=TRUE)
 	ret
 }
 
-
 adjustPermP = function(p, N)
 {
 	(p*N+1)/(N+1)
+}
+
+#' Summarize VEGAS data
+#'
+#' Display a short summary of a VEGAS dataset
+#'
+#' @param x A VEGAS object
+#' @param ... Other arguments, currently ignored
+#'
+#' @return The same object, invisibly
+#' @export
+summary.VEGAS = function(x, ...)
+{
+	n = nrow(x)
+	dup = length(which(duplicated(x$Gene)))
+	p = summary(x$Pvalue)
+
+	cat(n, " genes total (", dup, " duplicate IDs)\n\n", sep="")
+	cat("Genewise p-values:\n")
+	print(p)
+
+	invisible(x)
 }	
+	
+
 
 
     
