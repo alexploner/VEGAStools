@@ -52,7 +52,7 @@ summary.VEGAS = function(x, ...)
 	invisible(x)
 }	
 	
-
-
+showDuplicates = function(x) x[x$Gene %in% x$Gene[duplicated(x$Gene)], ]
+dropDuplicates = function(x) x[!duplicated(x$Gene), ]
 
     
