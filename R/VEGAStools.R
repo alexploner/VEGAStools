@@ -203,6 +203,51 @@ topTable = function(x, nmax=30, co=1)
 	head(ret, nmax)
 }	
 
+#' Annotate a VEGAS genelist
+#'
+#' Adds gene name and Entrez identifier for genes in a VEGAS gene list
+#'
+#' @param x A gene list of class \code{VEGAS}
+#' @param anndb An annotation database for an organism of class \code{\link{OrgDb-class}},
+#' available from Bioconductor. The default is \code{\link{org.Hs.eg.db}}.
+#'
+#' @return If a valid annotation database is specified, an object of class
+#' \code{annVEGAS} which inherits from class \code{VEGAS} and has two extra
+#' columns (\code{Description} and \code{Entrez}). If no valid annotation
+#' database is specified or the default database is not available, the original
+#' \code{VEGAS} object and a warning are returned. 
+#'
+#' @details This only works if an annotation database for the organism under study
+#' is locally available. Also, current matching of gene names does not account
+#' for aliases and does not work terribly well (FIXME).
+#'
+#' @export
+annotateVEGAS = function(x, anndb)
+{
+	if ("annVEGAS" %in% class(x)) return(x)
+	if (missing(anndb)) {
+		if(require("org.Hs.eg.db")) {
+			anndb = org.Hs.eg.db
+		} else {
+			warning("Cannot find database org.Hs.eg.db - no annotation")
+			return(x)
+		}
+	} else {
+		if (!inherits(anndb, "orgDb")) {
+			warning(deparse(substitute(anndb)), " is not of class orgDb - no annotation")
+			return(x)
+		}
+			
+	}
+    
+    gg = as.character(x$Gene)
+    namu = mapIds(anndb, keys=gg, keytype="SYMBOL", column="GENENAME")
+    entr = mapIds(anndb, keys=gg, keytype="SYMBOL", column="ENTREZID")
+    ret = cbind(x, Description=namu, Entrez=entr)
+    class(ret) = c("annVEGAS", class(x))
+    ret
+}
+
 
 
     
