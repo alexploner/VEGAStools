@@ -102,12 +102,12 @@ intersectVEGAS = function(...)
 #' @param x,y Two gene lists of class \code{VEGAS}
 #' @param co Cutoff for selecting statistically significant genes in both lists
 #'
-#' @return A named vector with four components: \code{Obs}, the number of genes
-#' observed to be statistically significant at the chosen cutoff, \code{Exp}, the
-#' number of genes expected to be significant in both lists under the assumption
-#' that the propoerty being statistically significant is independent between the
-#' two lists, and \code{LCL} and \code{UCL}, the respective lower and upper
-#' 95\% confidence limits
+#' @return \code{counts} returns a named vector with four components: \code{Obs},
+#' the number of genes observed to be statistically significant at the chosen
+#' cutoff, \code{Exp}, the number of genes expected to be significant in both
+#' lists under the assumption that the propoerty being statistically significant
+#' is independent between the two lists, and \code{LCL} and \code{UCL}, the
+#' respective lower and upper 95\% confidence limits.
 #' @export
 counts = function(x, y, co=0.05)
 {
@@ -122,6 +122,23 @@ counts = function(x, y, co=0.05)
 	UCL = (p0+1.96*se)*nn
 	round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL))
 }
+
+#' @rdname counts
+#'
+#' @param minP,maxP Smallest and largest cutoff value for considering the
+#'                  overlap in significant genes between lists
+#' @param nP Number of intermediate points between \code{minP} and \code{maxP}
+#' @param legend Logical flag indicating whether to add a legend to the plot
+#' @param ylim,title,xlab,ylab,... Standard graphical prarameters for \code{plot}
+#'                   to override the function defaults
+#'
+#' @return \code{plotCounts} generates a plot of observed/expected counts as a
+#' function of the specified cutoff range and returns invisibly a data frame
+#' with the cutoffs (column \code{co}) and the corresponding output from
+#' \code{counts}.
+#'
+#' @export
+
 plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, title, xlab, ylab, ...)
 {
 	xx = seq(minP, maxP, length=nP)

@@ -2,22 +2,41 @@
 % Please edit documentation in R/VEGAStools.R
 \name{counts}
 \alias{counts}
+\alias{plotCounts}
 \title{Display expected and observed counts of co-significant genes}
 \usage{
 counts(x, y, co = 0.05)
+
+plotCounts(x, y, minP = 1e-06, maxP = 0.1, nP = 100, legend = TRUE,
+  ylim, title, xlab, ylab, ...)
 }
 \arguments{
 \item{x,y}{Two gene lists of class \code{VEGAS}}
 
 \item{co}{Cutoff for selecting statistically significant genes in both lists}
+
+\item{minP,maxP}{Smallest and largest cutoff value for considering the
+overlap in significant genes between lists}
+
+\item{nP}{Number of intermediate points between \code{minP} and \code{maxP}}
+
+\item{legend}{Logical flag indicating whether to add a legend to the plot}
+
+\item{ylim,title,xlab,ylab,...}{Standard graphical prarameters for \code{plot}
+                  to override the function defaults}
 }
 \value{
-A named vector with four components: \code{Obs}, the number of genes
-observed to be statistically significant at the chosen cutoff, \code{Exp}, the
-number of genes expected to be significant in both lists under the assumption
-that the propoerty being statistically significant is independent between the
-two lists, and \code{LCL} and \code{UCL}, the respective lower and upper
-95\% confidence limits
+\code{counts} returns a named vector with four components: \code{Obs},
+the number of genes observed to be statistically significant at the chosen
+cutoff, \code{Exp}, the number of genes expected to be significant in both
+lists under the assumption that the propoerty being statistically significant
+is independent between the two lists, and \code{LCL} and \code{UCL}, the
+respective lower and upper 95\% confidence limits.
+
+\code{plotCounts} generates a plot of observed/expected counts as a
+function of the specified cutoff range and returns invisibly a data frame
+with the cutoffs (column \code{co}) and the corresponding output from
+\code{counts}.
 }
 \description{
 Given two gene lists of class \code{VEGAS} and a p-value threshold, this
