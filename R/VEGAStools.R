@@ -51,6 +51,7 @@ summary.VEGAS = function(x, ...)
 
 	invisible(x)
 }	
+
 	
 showDuplicates = function(x) x[x$Gene %in% x$Gene[duplicated(x$Gene)], ]
 dropDuplicates = function(x) x[!duplicated(x$Gene), ]
@@ -95,7 +96,19 @@ intersectVEGAS = function(...)
 #'
 #' Given two gene lists of class \code{VEGAS} and a p-value threshold, this
 #' function reports the number of genes below this threshold on both lists,
-#' together with the expected counts 
+#' together with the expected counts under the null hypothesis of no association
+#' between the gene lists, and a 95\% confidence interval
+#'
+#' @param x,y Two gene lists of class \code{VEGAS}
+#' @param co Cutoff for selecting statistically significant genes in both lists
+#'
+#' @return A named vector with four components: \code{Obs}, the number of genes
+#' observed to be statistically significant at the chosen cutoff, \code{Exp}, the
+#' number of genes expected to be significant in both lists under the assumption
+#' that the propoerty being statistically significant is independent between the
+#' two lists, and \code{LCL} and \code{UCL}, the respective lower and upper
+#' 95\% confidence limits
+#' @export
 counts = function(x, y, co=0.05)
 {
 	nn = nrow(x)
