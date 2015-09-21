@@ -91,7 +91,11 @@ intersectVEGAS = function(...)
 	ret
 }
 
-
+#' Display expected and observed counts of co-significant genes
+#'
+#' Given two gene lists of class \code{VEGAS} and a p-value threshold, this
+#' function reports the number of genes below this threshold on both lists,
+#' together with the expected counts 
 counts = function(x, y, co=0.05)
 {
 	nn = nrow(x)
@@ -105,7 +109,7 @@ counts = function(x, y, co=0.05)
 	UCL = (p0+1.96*se)*nn
 	round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL))
 }
-plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, ylim, title, xlab, ylab, legend=TRUE, ...)
+plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, title, xlab, ylab, ...)
 {
 	xx = seq(minP, maxP, length=nP)
 	cnts = t(sapply(xx, function(p) counts(x, y, co=p)))
@@ -134,7 +138,23 @@ plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, ylim, title, xlab, ylab
 	invisible(ret)
 }	
 
-
+#' Display the most significant genes
+#'
+#' Displays a specfied number of top genes below a specified p-value threshold
+#'
+#' @param x A gene list object of class \code{VEGAS}
+#' @param nmax The maximum number of genes to display
+#' @param co Cutoff for the genewise p-values: only genes with a p-value below
+#'           this cutoff are considered for display
+#'
+#' $return An object of class \code{VEGAS}
+#' @export
+topTable = function(x, nmax=30, co=1)
+{
+	ret = subset(x, Pvalue <= co)
+	ret = ret[order(ret$Pvalue, ret$Chr, ret$nSNPs),]
+	head(ret, nmax)
+}	
 
 
 
