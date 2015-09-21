@@ -248,6 +248,45 @@ annotateVEGAS = function(x, anndb)
     ret
 }
 
+#' Write an annotated VEGAS genelist to an HTML file
+#'
+#' This function combine sthe functionality of \code{\link{topTable}} and
+#' \code{\link{annotateVEGAS}} to generate annotated lists of top significant
+#' genes with links to the NCBI Entrez database and writes the resulting lists
+#' to a local HTML file.
+#'
+#' @param x A gene list of class \code{VEGAS}
+#' @param filename The name of the output file
+#' @param title Title of the HTML page
+#' @param nmax,co Maximum number of genes in output list and p-value cutoff, see
+#' \code{\link{topTable}}
+#'
+#' @return This function is called for the side effect of generating an HTML
+#' output file
+#'
+#' @seealso \code{\link[annotate]{htmlpage}}
+#'
+#' @export
+exportVEGAS = function(x, filename, title, nmax=Inf, co=1)
+{
+	if (missing(filename)) filename = paste(deparse(substitute(x)), ".html", sep="")
+	if (missing(title))    title = deparse(substitute(x))
+	title = paste("<H3>", title, "</H3>")
+
+	x = annotateVEGAS(topTable(x, nmax=nmax, co=co))
+	gl = list(as.character(x$Entrez))
+	other = subset(x, select=-Entrez)
+	table.head = c("Entrez", "Chr.", "Gene", "nSNPs", "nSims",
+	               "Start", "Stop", "Test stat.", "p-value", "Best SNP",
+	               "SNP.pval", "Description")
+
+	other$Pvalue = format.pval(other$Pvalue, digits=1)
+	other$SNP.pvalue = format.pval(other$SNP.pvalue, digits=1)
+	other$nSims  = format(round(other$nSims, 1))
+
+	annotate::htmlpage(gl, filename, title, other, table.head, )
+}	
+
 
 
     
