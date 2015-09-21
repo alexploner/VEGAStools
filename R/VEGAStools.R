@@ -160,7 +160,7 @@ plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, titl
 #' @param co Cutoff for the genewise p-values: only genes with a p-value below
 #'           this cutoff are considered for display
 #'
-#' $return An object of class \code{VEGAS}
+#' @return An object of class \code{VEGAS}
 #' @export
 topTable = function(x, nmax=30, co=1)
 {
