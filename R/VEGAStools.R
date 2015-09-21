@@ -52,8 +52,26 @@ summary.VEGAS = function(x, ...)
 	invisible(x)
 }	
 
-	
+
+#' Handle duplicates in VEGAS gene lists
+#'
+#' Return entries with duplicate gene names, or drop them from a VEGAS gene list
+#'
+#' @param x A gene list of class \code{VEGAS}
+#'
+#' @return A shorter VEGAS gene lists, either consisting of only duplciate entries
+#' or the original list without the duplicated entries
+#'
+#' @export
 showDuplicates = function(x) x[x$Gene %in% x$Gene[duplicated(x$Gene)], ]
+
+#' @rdname showDuplicates
+#'
+#' @details When dropping duplicates, it is the second entry from the top that
+#' is excluded. Strategic pre-sorting of the list can be useful if you want to
+#' be more specific.
+#'
+#' @export
 dropDuplicates = function(x) x[!duplicated(x$Gene), ]
 
 
@@ -138,7 +156,6 @@ counts = function(x, y, co=0.05)
 #' \code{counts}.
 #'
 #' @export
-
 plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, title, xlab, ylab, ...)
 {
 	xx = seq(minP, maxP, length=nP)
