@@ -11,8 +11,8 @@ topTable(x, nmax = 30, co = 1)
 
 \item{nmax}{The maximum number of genes to display}
 
-\item{co}{Cutoff for the genewise p-values: only genes with a p-value below
-          this cutoff are considered for display}
+\item{co}{Cutoff for the genewise p-values: only genes with an
+ adjusted p-value less or equal this cutoff are considered for display}
 }
 \value{
 An object of class \code{VEGAS}

@@ -7,20 +7,33 @@
 #' @param path Path to file, defaults to \code{.}
 #' @param adjPermP FLag indicating whether to adjust the permutation p-values
 #'        reported by VEGAS, see below. Defaults to \code{TRUE}.
+#' @param p.adjust The multiple testing adjustment for the gene-wise 
+#' p-values; can be any the methods in \code{\link{p.adjust.methods}} 
+#' except for \code{none}.
 #'
 #' @details VEGAS returns permutation p-values that are exactly zero, which is
 #' of course impossible. The read-in function adjusts this by including the
-#' observed test statistic in the null-count.
+#' observed test statistic in the null-count. 
 #'
-#' @return A data frame containing the data with extra class attribute \code{VEGAS}
+#' @return A data frame containing the data with extra class attribute 
+#' \code{VEGAS}. This is a straightforward wrapper for the raw data, 
+#' except for the extra column with adjusted p-values, with is named 
+#' \code{adjPvalue.<adjustment method>}.
+#'
+#' #' @seealso \code{\link[annotate]{htmlpage}} \code{\link{topTable}}
+#' 
 #' @export
-readVEGAS = function(fn, path=".", adjPermP=TRUE)
+readVEGAS = function(fn, path=".", adjPermP=TRUE, p.adjust="holm")
 {
 	fn = file.path(path, fn)
 	ret = read.table(fn, header=TRUE)
 	if (adjPermP) {
 		ret$Pvalue = adjustPermP(ret$Pvalue, ret$nSim)
-	}		
+	}
+	p.adjust = match.arg(p.adjust, setdiff(p.adjust.methods, "none"))
+	adjp     = p.adjust(ret$Pvalue, p.adjust)
+	ret = cbind(ret, adjp)
+	colnames(ret)[ncol(ret)] = paste("adjPvalue", p.adjust, sep=".")
 	class(ret) = c("VEGAS", "data.frame")
 	ret
 }
@@ -29,6 +42,15 @@ adjustPermP = function(p, N)
 {
 	(p*N+1)/(N+1)
 }
+
+updateAdjP = function(x) 
+{
+	nc = ncol(x)
+	method = strsplit(colnames(x)[nc], "\\.")[[1]][2]
+	x[, nc] = p.adjust(x$Pvalue, method)
+	x
+}
+	
 
 #' Summarize VEGAS data
 #'
@@ -69,10 +91,11 @@ showDuplicates = function(x) x[x$Gene %in% x$Gene[duplicated(x$Gene)], ]
 #'
 #' @details When dropping duplicates, it is the second entry from the top that
 #' is excluded. Strategic pre-sorting of the list can be useful if you want to
-#' be more specific.
+#' be more specific. Note that the adjusted p-values will be updated to
+#' reflect the smaller number of genes
 #'
 #' @export
-dropDuplicates = function(x) x[!duplicated(x$Gene), ]
+dropDuplicates = function(x) updateAdjP(x[!duplicated(x$Gene), ])
 
 
 #' Intersect VEGAS results
@@ -81,6 +104,8 @@ dropDuplicates = function(x) x[!duplicated(x$Gene), ]
 #' reduced to the shared set of genes
 #'
 #' @param ... A list of VEGAS objects, separated by commas
+#'
+#' @details The p-value adjustment for multiple testing is updated.
 #'
 #' @return A list of VEGAS objects
 #' @export
@@ -106,6 +131,7 @@ intersectVEGAS = function(...)
 	## objects
 	ret = lapply(args, function(x) subset(x, as.character(Gene) %in% is) )
 	ret = lapply(ret, function(x) x[order(x$Gene), ] )
+	ret = lapply(ret, updateAdjP)
 	names(ret) = namu
 	ret
 }
@@ -191,15 +217,17 @@ plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, titl
 #'
 #' @param x A gene list object of class \code{VEGAS}
 #' @param nmax The maximum number of genes to display
-#' @param co Cutoff for the genewise p-values: only genes with a p-value below
-#'           this cutoff are considered for display
+#' @param co Cutoff for the genewise p-values: only genes with an 
+#'  adjusted p-value less or equal this cutoff are considered for display
 #'
 #' @return An object of class \code{VEGAS}
 #' @export
 topTable = function(x, nmax=30, co=1)
 {
-	ret = subset(x, Pvalue <= co)
-	ret = ret[order(ret$Pvalue, ret$Chr, ret$nSNPs),]
+	adjp = x[, ncol(x)]
+	ndx  = adjp <= co
+	ret = subset(x, ndx)
+	ret = ret[order(ret$Pvalue, -ret$nSNPs, as.character(ret$Gene)), ]
 	head(ret, nmax)
 }	
 
@@ -277,11 +305,13 @@ exportVEGAS = function(x, filename, title, nmax=Inf, co=1)
 	gl = list(as.character(x$Entrez))
 	other = subset(x, select=-Entrez)
 	table.head = c("Entrez", "Chr.", "Gene", "nSNPs", "nSims",
-	               "Start", "Stop", "Test stat.", "p-value", "Best SNP",
-	               "SNP.pval", "Description")
+	               "Start", "Stop", "Test stat.", "p-value",
+	               "Best SNP", "SNP.pval", "adj. p-value", "Description")
 
 	other$Pvalue = format.pval(other$Pvalue, digits=1)
 	other$SNP.pvalue = format.pval(other$SNP.pvalue, digits=1)
+	adjp_cn = ncol(other) - 1	## variable name, alas
+	other[, adjp_cn] = format.pval(other[, adjp_cn], digits=1)	
 	other$nSims  = format(round(other$nSims, 1))
 
 	annotate::htmlpage(gl, filename, title, other, table.head, )
@@ -290,3 +320,4 @@ exportVEGAS = function(x, filename, title, nmax=Inf, co=1)
 
 
     
+
