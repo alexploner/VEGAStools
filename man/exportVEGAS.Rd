@@ -21,7 +21,7 @@ This function is called for the side effect of generating an HTML
 output file
 }
 \description{
-This function combine sthe functionality of \code{\link{topTable}} and
+This function combines the functionality of \code{\link{topTable}} and
 \code{\link{annotateVEGAS}} to generate annotated lists of top significant
 genes with links to the NCBI Entrez database and writes the resulting lists
 to a local HTML file.

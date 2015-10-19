@@ -278,7 +278,7 @@ annotateVEGAS = function(x, anndb)
 
 #' Write an annotated VEGAS genelist to an HTML file
 #'
-#' This function combine sthe functionality of \code{\link{topTable}} and
+#' This function combines the functionality of \code{\link{topTable}} and
 #' \code{\link{annotateVEGAS}} to generate annotated lists of top significant
 #' genes with links to the NCBI Entrez database and writes the resulting lists
 #' to a local HTML file.
@@ -317,6 +317,35 @@ exportVEGAS = function(x, filename, title, nmax=Inf, co=1)
 	annotate::htmlpage(gl, filename, title, other, table.head, )
 }	
 
+#' Extract p-values from a list of VEGAS objects
+#'
+#' This function takes the output from \code{} and
+#' returns a matrix of p-values
+#'
+#' @param x A list returned by \code{intersectVEGAS}
+#' @param co Upper cutoff for p-values to be included
+#' @param min_cnt Minimum number of VEGAS data sets that have to have 
+#' a p-value smaller or equal to \code{co} for a gene to be included
+#' @param adjusted Logical flag indicating whether to return adjusted
+#' p-values or unadjusted ones (default).
+#' 
+#' @return A matrix of p-values, possibly empty
+#'
+#' @seealso \code{\link{intersectVEGAS}}
+#'
+#' @export
+getSharedP = function(x, co=1, min_cnt=2, adjusted=FALSE)
+{
+	nc = if (adjusted) pmatch("adjPvalue", colnames(x[[1]])) else pmatch("Pvalue", colnames(x[[1]]))
+	sharedP = sapply(x, function(x) x[, nc])	
+	rownames(sharedP) = as.character(x[[1]]$Gene)
+
+	cnt = apply(sharedP, 1, function(x) length(which(x <= co)))
+	ndx = cnt >= min_cnt
+	sharedP = sharedP[ndx,]
+		
+	sharedP
+}
 
 
     
