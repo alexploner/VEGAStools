@@ -146,12 +146,17 @@ intersectVEGAS = function(...)
 #' @param x,y Two gene lists of class \code{VEGAS}
 #' @param co Cutoff for selecting statistically significant genes in both lists
 #'
-#' @return \code{counts} returns a named vector with four components: \code{Obs},
+#' @return \code{counts} returns a named vector with six components: \code{Obs},
 #' the number of genes observed to be statistically significant at the chosen
 #' cutoff, \code{Exp}, the number of genes expected to be significant in both
-#' lists under the assumption that the propoerty being statistically significant
-#' is independent between the two lists, and \code{LCL} and \code{UCL}, the
-#' respective lower and upper 95\% confidence limits.
+#' lists under the assumption that the property being statistically significant
+#' is independent between the two lists, \code{LCL} and \code{UCL}, the
+#' respective lower and upper 95\% confidence limits, and \code{warning}, 
+#' an integer flag indicating whether the assumptions for the normal 
+#' approximation for the confidence limits are valid (0, no warning) or 
+#' not (1, warning). The final component, \code{p.value}, is the 
+#' two-sided p-value for the hypothesis based on Fisher's exact test and
+#' does not rely on the normal approximation. 
 #' @export
 counts = function(x, y, co=0.05)
 {
@@ -164,7 +169,9 @@ counts = function(x, y, co=0.05)
 	exp = p0*nn
 	LCL = (p0-1.96*se)*nn
 	UCL = (p0+1.96*se)*nn
-	round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL))
+	warn = as.numeric(min(p0, 1-p0) * nn < 5)
+	pval  = fisher.test(table(x0, y0))$p.value
+	c(round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL, warning=warn)), p.value=pval)
 }
 
 #' @rdname counts

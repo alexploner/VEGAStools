@@ -26,12 +26,17 @@ overlap in significant genes between lists}
                   to override the function defaults}
 }
 \value{
-\code{counts} returns a named vector with four components: \code{Obs},
+\code{counts} returns a named vector with six components: \code{Obs},
 the number of genes observed to be statistically significant at the chosen
 cutoff, \code{Exp}, the number of genes expected to be significant in both
-lists under the assumption that the propoerty being statistically significant
-is independent between the two lists, and \code{LCL} and \code{UCL}, the
-respective lower and upper 95\% confidence limits.
+lists under the assumption that the property being statistically significant
+is independent between the two lists, \code{LCL} and \code{UCL}, the
+respective lower and upper 95\% confidence limits, and \code{warning},
+an integer flag indicating whether the assumptions for the normal
+approximation for the confidence limits are valid (0, no warning) or
+not (1, warning). The final component, \code{p.value}, is the
+two-sided p-value for the hypothesis based on Fisher's exact test and
+does not rely on the normal approximation.
 
 \code{plotCounts} generates a plot of observed/expected counts as a
 function of the specified cutoff range and returns invisibly a data frame
