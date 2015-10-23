@@ -7,20 +7,33 @@
 #' @param path Path to file, defaults to \code{.}
 #' @param adjPermP FLag indicating whether to adjust the permutation p-values
 #'        reported by VEGAS, see below. Defaults to \code{TRUE}.
+#' @param p.adjust The multiple testing adjustment for the gene-wise 
+#' p-values; can be any the methods in \code{\link{p.adjust.methods}} 
+#' except for \code{none}.
 #'
 #' @details VEGAS returns permutation p-values that are exactly zero, which is
 #' of course impossible. The read-in function adjusts this by including the
-#' observed test statistic in the null-count.
+#' observed test statistic in the null-count. 
 #'
-#' @return A data frame containing the data with extra class attribute \code{VEGAS}
+#' @return A data frame containing the data with extra class attribute 
+#' \code{VEGAS}. This is a straightforward wrapper for the raw data, 
+#' except for the extra column with adjusted p-values, with is named 
+#' \code{adjPvalue.<adjustment method>}.
+#'
+#' #' @seealso \code{\link[annotate]{htmlpage}} \code{\link{topTable}}
+#' 
 #' @export
-readVEGAS = function(fn, path=".", adjPermP=TRUE)
+readVEGAS = function(fn, path=".", adjPermP=TRUE, p.adjust="holm")
 {
 	fn = file.path(path, fn)
 	ret = read.table(fn, header=TRUE)
 	if (adjPermP) {
 		ret$Pvalue = adjustPermP(ret$Pvalue, ret$nSim)
-	}		
+	}
+	p.adjust = match.arg(p.adjust, setdiff(p.adjust.methods, "none"))
+	adjp     = p.adjust(ret$Pvalue, p.adjust)
+	ret = cbind(ret, adjp)
+	colnames(ret)[ncol(ret)] = paste("adjPvalue", p.adjust, sep=".")
 	class(ret) = c("VEGAS", "data.frame")
 	ret
 }
@@ -29,6 +42,15 @@ adjustPermP = function(p, N)
 {
 	(p*N+1)/(N+1)
 }
+
+updateAdjP = function(x) 
+{
+	nc = ncol(x)
+	method = strsplit(colnames(x)[nc], "\\.")[[1]][2]
+	x[, nc] = p.adjust(x$Pvalue, method)
+	x
+}
+	
 
 #' Summarize VEGAS data
 #'
@@ -69,10 +91,11 @@ showDuplicates = function(x) x[x$Gene %in% x$Gene[duplicated(x$Gene)], ]
 #'
 #' @details When dropping duplicates, it is the second entry from the top that
 #' is excluded. Strategic pre-sorting of the list can be useful if you want to
-#' be more specific.
+#' be more specific. Note that the adjusted p-values will be updated to
+#' reflect the smaller number of genes
 #'
 #' @export
-dropDuplicates = function(x) x[!duplicated(x$Gene), ]
+dropDuplicates = function(x) updateAdjP(x[!duplicated(x$Gene), ])
 
 
 #' Intersect VEGAS results
@@ -81,6 +104,8 @@ dropDuplicates = function(x) x[!duplicated(x$Gene), ]
 #' reduced to the shared set of genes
 #'
 #' @param ... A list of VEGAS objects, separated by commas
+#'
+#' @details The p-value adjustment for multiple testing is updated.
 #'
 #' @return A list of VEGAS objects
 #' @export
@@ -106,6 +131,7 @@ intersectVEGAS = function(...)
 	## objects
 	ret = lapply(args, function(x) subset(x, as.character(Gene) %in% is) )
 	ret = lapply(ret, function(x) x[order(x$Gene), ] )
+	ret = lapply(ret, updateAdjP)
 	names(ret) = namu
 	ret
 }
@@ -114,18 +140,30 @@ intersectVEGAS = function(...)
 #'
 #' Given two gene lists of class \code{VEGAS} and a p-value threshold, this
 #' function reports the number of genes below this threshold on both lists,
-#' together with the expected counts under the null hypothesis of no association
-#' between the gene lists, and a 95\% confidence interval
+#' with a 95\% confidence interval for the true value, as well as the 
+#' the expected number under the null hypothesis of no association
+#' between the gene lists, and the corresponding p-value
 #'
 #' @param x,y Two gene lists of class \code{VEGAS}
 #' @param co Cutoff for selecting statistically significant genes in both lists
 #'
-#' @return \code{counts} returns a named vector with four components: \code{Obs},
-#' the number of genes observed to be statistically significant at the chosen
-#' cutoff, \code{Exp}, the number of genes expected to be significant in both
-#' lists under the assumption that the propoerty being statistically significant
-#' is independent between the two lists, and \code{LCL} and \code{UCL}, the
-#' respective lower and upper 95\% confidence limits.
+#' @return \code{counts} returns a named vector with five components: \code{Obs},
+#' the number of genes observed to be statistically significant on both lists at the chosen
+#' cutoff, \code{LCL} and \code{UCL}, the corresponding confidence interval
+#' for the number of overlapping genes, \code{Exp}, the number of genes
+#' expected to be significant on both lists under the assumption of no
+#' association between the underlying traits, and \code{p.value}, the 
+#' corresponding two-sided p-value. 
+#'
+#' @details Confidence intervals, expected count and p-value are based 
+#' on \code{binom.test}. The expected count under the null hypothesis 
+#' is conditional on the p-values observed for each trait individually, 
+#' i.e. we assume that the probability to be significant on both lists is 
+#' the product of the marginal proportions of significant genes on each 
+#' list. 
+#' \strong{Warning:} inference assumes independence between genes, which is a rather
+#' strong assumption in this setting.
+#' 
 #' @export
 counts = function(x, y, co=0.05)
 {
@@ -134,11 +172,12 @@ counts = function(x, y, co=0.05)
 	y0 = y$Pvalue <= co
 	obs = length(which(x0 & y0))
 	p0  = length(which(x0))*length(which(y0))/(nn*nn)
-	se  = sqrt(p0*(1-p0)/nn)
 	exp = p0*nn
-	LCL = (p0-1.96*se)*nn
-	UCL = (p0+1.96*se)*nn
-	round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL))
+	bin = binom.test( c(obs, nn-obs), p=p0)
+	LCL = bin$conf.int[1]*nn
+	UCL = bin$conf.int[2]*nn
+	pval  = bin$p.value
+	c(round(c(Obs=obs, LCL=LCL, UCL=UCL, Exp=exp)), p.value=pval)
 }
 
 #' @rdname counts
@@ -173,12 +212,12 @@ plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, titl
 		ylab = "Counts double significant"
 	}
 	
-	plot(xx, cnts[,2], type="l", ylim=ylim, xlab=xlab, ylab=ylab, main=title, ...)
+	plot(xx, cnts[,4], type="l", ylim=ylim, xlab=xlab, ylab=ylab, main=title, lwd=2, ...)
 	lines(xx, cnts[,1], lwd=2, col="red")
-	lines(xx, cnts[,3], lty=2, col="blue")
-	lines(xx, cnts[,4], lty=2, col="blue")
+	lines(xx, cnts[,2], lty=2, col="red")
+	lines(xx, cnts[,3], lty=2, col="red")
 	if (legend) {
-		legend("topleft", c("Observed", "Expected under H0", "95% CI"), col=c("red", "black", "blue"), lty=c(1,1,1), lwd=c(2,1,1))
+		legend("topleft", c("Observed", "95% CI", "Expected under H0"), col=c("red", "red", "black"), lty=c(1,2,1), lwd=c(2,1,2))
 	}
 	
 	ret = data.frame(cnts, co=xx)
@@ -191,15 +230,17 @@ plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, titl
 #'
 #' @param x A gene list object of class \code{VEGAS}
 #' @param nmax The maximum number of genes to display
-#' @param co Cutoff for the genewise p-values: only genes with a p-value below
-#'           this cutoff are considered for display
+#' @param co Cutoff for the genewise p-values: only genes with an 
+#'  adjusted p-value less or equal this cutoff are considered for display
 #'
 #' @return An object of class \code{VEGAS}
 #' @export
 topTable = function(x, nmax=30, co=1)
 {
-	ret = subset(x, Pvalue <= co)
-	ret = ret[order(ret$Pvalue, ret$Chr, ret$nSNPs),]
+	adjp = x[, ncol(x)]
+	ndx  = adjp <= co
+	ret = subset(x, ndx)
+	ret = ret[order(ret$Pvalue, -ret$nSNPs, as.character(ret$Gene)), ]
 	head(ret, nmax)
 }	
 
@@ -250,7 +291,7 @@ annotateVEGAS = function(x, anndb)
 
 #' Write an annotated VEGAS genelist to an HTML file
 #'
-#' This function combine sthe functionality of \code{\link{topTable}} and
+#' This function combines the functionality of \code{\link{topTable}} and
 #' \code{\link{annotateVEGAS}} to generate annotated lists of top significant
 #' genes with links to the NCBI Entrez database and writes the resulting lists
 #' to a local HTML file.
@@ -277,16 +318,48 @@ exportVEGAS = function(x, filename, title, nmax=Inf, co=1)
 	gl = list(as.character(x$Entrez))
 	other = subset(x, select=-Entrez)
 	table.head = c("Entrez", "Chr.", "Gene", "nSNPs", "nSims",
-	               "Start", "Stop", "Test stat.", "p-value", "Best SNP",
-	               "SNP.pval", "Description")
+	               "Start", "Stop", "Test stat.", "p-value",
+	               "Best SNP", "SNP.pval", "adj. p-value", "Description")
 
 	other$Pvalue = format.pval(other$Pvalue, digits=1)
 	other$SNP.pvalue = format.pval(other$SNP.pvalue, digits=1)
+	adjp_cn = ncol(other) - 1	## variable name, alas
+	other[, adjp_cn] = format.pval(other[, adjp_cn], digits=1)	
 	other$nSims  = format(round(other$nSims, 1))
 
 	annotate::htmlpage(gl, filename, title, other, table.head, )
 }	
 
+#' Extract p-values from a list of VEGAS objects
+#'
+#' This function takes the output from \code{} and
+#' returns a matrix of p-values
+#'
+#' @param x A list returned by \code{intersectVEGAS}
+#' @param co Upper cutoff for p-values to be included
+#' @param min_cnt Minimum number of VEGAS data sets that have to have 
+#' a p-value smaller or equal to \code{co} for a gene to be included
+#' @param adjusted Logical flag indicating whether to return adjusted
+#' p-values or unadjusted ones (default).
+#' 
+#' @return A matrix of p-values, possibly empty
+#'
+#' @seealso \code{\link{intersectVEGAS}}
+#'
+#' @export
+getSharedP = function(x, co=1, min_cnt=2, adjusted=FALSE)
+{
+	nc = if (adjusted) pmatch("adjPvalue", colnames(x[[1]])) else pmatch("Pvalue", colnames(x[[1]]))
+	sharedP = sapply(x, function(x) x[, nc])	
+	rownames(sharedP) = as.character(x[[1]]$Gene)
+
+	cnt = apply(sharedP, 1, function(x) length(which(x <= co)))
+	ndx = cnt >= min_cnt
+	sharedP = sharedP[ndx,]
+		
+	sharedP
+}
 
 
     
+

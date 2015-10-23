@@ -22,6 +22,7 @@ Return entries with duplicate gene names, or drop them from a VEGAS gene list
 \details{
 When dropping duplicates, it is the second entry from the top that
 is excluded. Strategic pre-sorting of the list can be useful if you want to
-be more specific.
+be more specific. Note that the adjusted p-values will be updated to
+reflect the smaller number of genes
 }
 

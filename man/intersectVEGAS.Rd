@@ -16,4 +16,7 @@ A list of VEGAS objects
 Takes any number of VEGAS data objects and returns a list with VEGAS data sets
 reduced to the shared set of genes
 }
+\details{
+The p-value adjustment for multiple testing is updated.
+}
 

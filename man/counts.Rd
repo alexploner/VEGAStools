@@ -26,12 +26,13 @@ overlap in significant genes between lists}
                   to override the function defaults}
 }
 \value{
-\code{counts} returns a named vector with four components: \code{Obs},
-the number of genes observed to be statistically significant at the chosen
-cutoff, \code{Exp}, the number of genes expected to be significant in both
-lists under the assumption that the propoerty being statistically significant
-is independent between the two lists, and \code{LCL} and \code{UCL}, the
-respective lower and upper 95\% confidence limits.
+\code{counts} returns a named vector with five components: \code{Obs},
+the number of genes observed to be statistically significant on both lists at the chosen
+cutoff, \code{LCL} and \code{UCL}, the corresponding confidence interval
+for the number of overlapping genes, \code{Exp}, the number of genes
+expected to be significant on both lists under the assumption of no
+association between the underlying traits, and \code{p.value}, the
+corresponding two-sided p-value.
 
 \code{plotCounts} generates a plot of observed/expected counts as a
 function of the specified cutoff range and returns invisibly a data frame
@@ -41,7 +42,18 @@ with the cutoffs (column \code{co}) and the corresponding output from
 \description{
 Given two gene lists of class \code{VEGAS} and a p-value threshold, this
 function reports the number of genes below this threshold on both lists,
-together with the expected counts under the null hypothesis of no association
-between the gene lists, and a 95\% confidence interval
+with a 95\% confidence interval for the true value, as well as the
+the expected number under the null hypothesis of no association
+between the gene lists, and the corresponding p-value
+}
+\details{
+Confidence intervals, expected count and p-value are based
+on \code{binom.test}. The expected count under the null hypothesis
+is conditional on the p-values observed for each trait individually,
+i.e. we assume that the probability to be significant on both lists is
+the product of the marginal proportions of significant genes on each
+list.
+\strong{Warning:} inference assumes independence between genes, which is a rather
+strong assumption in this setting.
 }
 
