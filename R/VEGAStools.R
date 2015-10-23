@@ -140,23 +140,30 @@ intersectVEGAS = function(...)
 #'
 #' Given two gene lists of class \code{VEGAS} and a p-value threshold, this
 #' function reports the number of genes below this threshold on both lists,
-#' together with the expected counts under the null hypothesis of no association
-#' between the gene lists, and a 95\% confidence interval
+#' with a 95\% confidence interval for the true value, as well as the 
+#' the expected number under the null hypothesis of no association
+#' between the gene lists, and the corresponding p-value
 #'
 #' @param x,y Two gene lists of class \code{VEGAS}
 #' @param co Cutoff for selecting statistically significant genes in both lists
 #'
-#' @return \code{counts} returns a named vector with six components: \code{Obs},
-#' the number of genes observed to be statistically significant at the chosen
-#' cutoff, \code{Exp}, the number of genes expected to be significant in both
-#' lists under the assumption that the property being statistically significant
-#' is independent between the two lists, \code{LCL} and \code{UCL}, the
-#' respective lower and upper 95\% confidence limits, and \code{warning}, 
-#' an integer flag indicating whether the assumptions for the normal 
-#' approximation for the confidence limits are valid (0, no warning) or 
-#' not (1, warning). The final component, \code{p.value}, is the 
-#' two-sided p-value for the hypothesis based on Fisher's exact test and
-#' does not rely on the normal approximation. 
+#' @return \code{counts} returns a named vector with five components: \code{Obs},
+#' the number of genes observed to be statistically significant on both lists at the chosen
+#' cutoff, \code{LCL} and \code{UCL}, the corresponding confidence interval
+#' for the number of overlapping genes, \code{Exp}, the number of genes
+#' expected to be significant on both lists under the assumption of no
+#' association between the underlying traits, and \code{p.value}, the 
+#' corresponding two-sided p-value. 
+#'
+#' @details Confidence intervals, expected count and p-value are based 
+#' on \code{binom.test}. The expected count under the null hypothesis 
+#' is conditional on the p-values observed for each trait individually, 
+#' i.e. we assume that the probability to be significant on both lists is 
+#' the product of the marginal proportions of significant genes on each 
+#' list. 
+#' \strong{Warning:} inference assumes independence between genes, which is a rather
+#' strong assumption in this setting.
+#' 
 #' @export
 counts = function(x, y, co=0.05)
 {
@@ -165,13 +172,12 @@ counts = function(x, y, co=0.05)
 	y0 = y$Pvalue <= co
 	obs = length(which(x0 & y0))
 	p0  = length(which(x0))*length(which(y0))/(nn*nn)
-	se  = sqrt(p0*(1-p0)/nn)
 	exp = p0*nn
-	LCL = (p0-1.96*se)*nn
-	UCL = (p0+1.96*se)*nn
-	warn = as.numeric(min(p0, 1-p0) * nn < 5)
-	pval  = fisher.test(table(x0, y0))$p.value
-	c(round(c(Obs=obs, Exp=exp, LCL=LCL, UCL=UCL, warning=warn)), p.value=pval)
+	bin = binom.test( c(obs, nn-obs), p=p0)
+	LCL = bin$conf.int[1]*nn
+	UCL = bin$conf.int[2]*nn
+	pval  = bin$p.value
+	c(round(c(Obs=obs, LCL=LCL, UCL=UCL, Exp=exp)), p.value=pval)
 }
 
 #' @rdname counts
@@ -206,12 +212,12 @@ plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, titl
 		ylab = "Counts double significant"
 	}
 	
-	plot(xx, cnts[,2], type="l", ylim=ylim, xlab=xlab, ylab=ylab, main=title, ...)
+	plot(xx, cnts[,4], type="l", ylim=ylim, xlab=xlab, ylab=ylab, main=title, lwd=2, ...)
 	lines(xx, cnts[,1], lwd=2, col="red")
-	lines(xx, cnts[,3], lty=2, col="blue")
-	lines(xx, cnts[,4], lty=2, col="blue")
+	lines(xx, cnts[,2], lty=2, col="red")
+	lines(xx, cnts[,3], lty=2, col="red")
 	if (legend) {
-		legend("topleft", c("Observed", "Expected under H0", "95% CI"), col=c("red", "black", "blue"), lty=c(1,1,1), lwd=c(2,1,1))
+		legend("topleft", c("Observed", "95% CI", "Expected under H0"), col=c("red", "red", "black"), lty=c(1,2,1), lwd=c(2,1,2))
 	}
 	
 	ret = data.frame(cnts, co=xx)
