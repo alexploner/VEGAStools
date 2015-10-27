@@ -5,15 +5,17 @@
 \alias{plotCounts}
 \title{Display expected and observed counts of co-significant genes}
 \usage{
-counts(x, y, co = 0.05)
+counts(x, y, co = 0.05, adjusted = FALSE)
 
-plotCounts(x, y, minP = 1e-06, maxP = 0.1, nP = 100, legend = TRUE,
-  ylim, title, xlab, ylab, ...)
+plotCounts(x, y, minP = 1e-06, maxP = 0.1, nP = 100, adjusted = FALSE,
+  legend = TRUE, ylim, title, xlab, ylab, ...)
 }
 \arguments{
 \item{x,y}{Two gene lists of class \code{VEGAS}}
 
 \item{co}{Cutoff for selecting statistically significant genes in both lists}
+
+\item{adjusted}{Logical flag indicating whether to use the raw or adjusted p-values (default: \code{FALSE}).}
 
 \item{minP,maxP}{Smallest and largest cutoff value for considering the
 overlap in significant genes between lists}
