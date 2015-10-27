@@ -146,6 +146,7 @@ intersectVEGAS = function(...)
 #'
 #' @param x,y Two gene lists of class \code{VEGAS}
 #' @param co Cutoff for selecting statistically significant genes in both lists
+#' @param adjusted Logical flag indicating whether to use the raw or adjusted p-values (default: \code{FALSE}).
 #'
 #' @return \code{counts} returns a named vector with five components: \code{Obs},
 #' the number of genes observed to be statistically significant on both lists at the chosen
@@ -165,11 +166,21 @@ intersectVEGAS = function(...)
 #' strong assumption in this setting.
 #' 
 #' @export
-counts = function(x, y, co=0.05)
+counts = function(x, y, co=0.05, adjusted=FALSE)
 {
 	nn = nrow(x)
-	x0 = x$Pvalue <= co
-	y0 = y$Pvalue <= co
+	if (!adjusted) {
+		pval_namx = pval_namy = "Pvalue"
+	} else {
+		cnx = colnames(x)
+		pval_namx = cnx[pmatch("adjPvalue", cnx)]
+		cny = colnames(y)
+		pval_namy = cny[pmatch("adjPvalue", cny)]
+	}
+	if (pval_namx != pval_namy) warning("You are comparing two differently adjusted p-values. This is probably a bad idea.")
+
+	x0 = x[, pval_namx] <= co
+	y0 = y[, pval_namy] <= co		
 	obs = length(which(x0 & y0))
 	p0  = length(which(x0))*length(which(y0))/(nn*nn)
 	exp = p0*nn
@@ -195,10 +206,10 @@ counts = function(x, y, co=0.05)
 #' \code{counts}.
 #'
 #' @export
-plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, legend=TRUE, ylim, title, xlab, ylab, ...)
+plotCounts = function(x, y, minP=1E-6, maxP=0.1, nP=100, adjusted=FALSE, legend=TRUE, ylim, title, xlab, ylab, ...)
 {
 	xx = seq(minP, maxP, length=nP)
-	cnts = t(sapply(xx, function(p) counts(x, y, co=p)))
+	cnts = t(sapply(xx, function(p) counts(x, y, co=p, adjusted=adjusted)))
 	if (missing(ylim)) {
 		ylim = c(min(cnts), max(cnts))
 	}
